@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "checkJs": false
+  },
+  "include": [
+    "src/**/*.js",
+    "tools/**/*.mjs"
+  ],
+  "exclude": [
+    "legacy"
+  ]
+}

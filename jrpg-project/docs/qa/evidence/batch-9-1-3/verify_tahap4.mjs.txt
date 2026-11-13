@@ -1,0 +1,15 @@
+import { chromium } from '/opt/npm-tools/node_modules/playwright/index.mjs';
+const b = await chromium.launch({ args: ['--no-sandbox'] });
+const p = await (await b.newContext({ viewport: { width: 960, height: 540 } })).newPage();
+const errors = []; p.on('pageerror', (e) => errors.push(e.message)); p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+await p.goto('http://localhost:8137/index.html'); await p.waitForTimeout(1500);
+for (let i = 0; i < 60; i++) { if ((await p.evaluate(() => window.__JRPG__.scenes.current.mode)) !== 'dialogue') break; await p.keyboard.press('Enter'); await p.waitForTimeout(120); }
+const emit = async (effects) => { await p.evaluate((effects) => window.__JRPG__.events.emit('dialogue.choice_selected', { effects }), effects); await p.waitForTimeout(120); return p.evaluate(() => window.__JRPG__.scenes.current._toast); };
+const t = [];
+await p.evaluate(() => { window.__JRPG__.scenes.current.gold = 100; });
+t.push(await emit({ shopBuy: { itemId: 'herb', cost: 5, qty: 1 } }));
+t.push(await emit({ acceptQuest: 'quest_bh_indeks' }));
+t.push(await emit({ acceptQuest: 'quest_ch5_suara_di_balik_batu' }));
+console.log('toasts:', JSON.stringify(t));
+console.log('errors', errors);
+await b.close();

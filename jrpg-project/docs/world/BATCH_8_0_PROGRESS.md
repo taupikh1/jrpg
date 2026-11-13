@@ -1,0 +1,11 @@
+# Batch 8.0 Progress
+- [x] Repository audit
+- [x] World master plan (12 regions)
+- [x] Connection graph
+- [x] World registry content module
+- [x] Visual / gameplay / story matrix docs
+- [x] World validator + tests
+- [x] Zone display names Indonesian (village/forest)
+- [x] Regression suite
+- [ ] Full region tilemaps (future)
+- [ ] Physical mobile world QA

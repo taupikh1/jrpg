@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "title": "THE ATLAS OF UNREMEMBERED STARS",
+  "world": "Lumerra",
+  "characters": [
+    "character_orin_vale",
+    "character_mira_solenne",
+    "character_kael_rowan",
+    "character_tavi_brindle",
+    "character_sera_nhal",
+    "character_iven_marr",
+    "character_neris_avel",
+    "character_bram_alder",
+    "character_vaelor_senn"
+  ],
+  "chapters": [
+    "chapter_01", "chapter_02", "chapter_03", "chapter_04", "chapter_05",
+    "chapter_06", "chapter_07", "chapter_08", "chapter_09", "chapter_10",
+    "chapter_11", "chapter_12", "chapter_13", "chapter_14", "chapter_15",
+    "chapter_16", "chapter_17", "chapter_18", "chapter_19", "chapter_20",
+    "chapter_21", "chapter_22", "chapter_23", "chapter_24", "chapter_25",
+    "chapter_26", "chapter_27", "chapter_28", "chapter_29", "chapter_30"
+  ],
+  "arcs": {
+    "1": ["chapter_01", "chapter_02", "chapter_03", "chapter_04", "chapter_05"],
+    "2": ["chapter_06", "chapter_07", "chapter_08", "chapter_09", "chapter_10"],
+    "3": ["chapter_11", "chapter_12", "chapter_13", "chapter_14", "chapter_15"],
+    "4": ["chapter_16", "chapter_17", "chapter_18", "chapter_19", "chapter_20"],
+    "5": ["chapter_21", "chapter_22", "chapter_23", "chapter_24", "chapter_25"],
+    "6": ["chapter_26", "chapter_27", "chapter_28", "chapter_29", "chapter_30"]
+  },
+  "regions": [
+    "region_ashwillow",
+    "region_whispering_wood",
+    "region_bellhaven",
+    "region_ashen_crown",
+    "region_silent_march",
+    "region_glass_lantern",
+    "region_starfall_plain",
+    "region_verdant_veil",
+    "region_underdeep",
+    "region_sleeping_kings",
+    "region_echo_road",
+    "region_heart_lumerra"
+  ],
+  "factions": [
+    "faction_ashen_crown",
+    "faction_bellhaven_council",
+    "faction_glass_guild",
+    "faction_tide_chorus",
+    "faction_roadwardens",
+    "faction_accord_remnant",
+    "faction_curators_hand",
+    "faction_underdeep_hold"
+  ],
+  "mysteries": [
+    "mystery_stillness_symptoms",
+    "mystery_erased_archives",
+    "mystery_mira_sister",
+    "mystery_kael_report",
+    "mystery_bram_past",
+    "mystery_curator_identity",
+    "mystery_lattice_purpose",
+    "mystery_orin_parents"
+  ]
+}

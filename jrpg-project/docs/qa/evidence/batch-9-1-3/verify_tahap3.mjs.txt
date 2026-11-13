@@ -1,0 +1,76 @@
+import { chromium } from '/opt/npm-tools/node_modules/playwright/index.mjs';
+const OUT = 'docs/qa/evidence/batch-9-1-3';
+const ENTER_ZONE = ({ zoneId, spawnId }) => {
+  const s = window.__JRPG__.scenes.current; const pid = s.player.id;
+  s.zones.transitionTo(zoneId, spawnId);
+  const zone = s.zones.activeZone;
+  for (const e of [...s.entities.all()]) if (e.id !== pid) s.entities.remove(e.id);
+  s.player.zoneId = zone.id;
+  const sp = zone.spawnPoints.find((x) => x.id === spawnId);
+  s.player.x = sp.x; s.player.y = sp.y;
+  const mov = s.player.get('movement'); if (mov) mov.collision = s.zones.collision;
+  s._spawnZoneNpcs(zone); s._applyCamera(); s._rebuildLayers();
+  return zone.id;
+};
+const b = await chromium.launch({ args: ['--no-sandbox'] });
+const ctx = await b.newContext({ viewport: { width: 960, height: 540 } });
+const p = await ctx.newPage();
+const errors = []; p.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
+p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+const boot = async () => {
+  await p.goto('http://localhost:8137/index.html'); await p.waitForTimeout(1500);
+  for (let i = 0; i < 60; i++) { const m = await p.evaluate(() => window.__JRPG__.scenes.current.mode); if (m !== 'dialogue') break; await p.keyboard.press('Enter'); await p.waitForTimeout(120); }
+};
+const st = () => p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { mode: s.mode, zone: s.zones?.activeZone?.id, x: Math.round(s.player.x), y: Math.round(s.player.y) }; });
+const tapE = async () => { await p.keyboard.down('KeyE'); await p.waitForTimeout(150); await p.keyboard.up('KeyE'); };
+const advance = async (max = 200) => { for (let i = 0; i < max; i++) { if ((await st()).mode !== 'dialogue') return true; await p.keyboard.press('Enter'); await p.waitForTimeout(120); } return false; };
+const dlgId = () => p.evaluate(() => window.__JRPG__.scenes.current.dialogue?.active?.id ?? window.__JRPG__.scenes.current.dialogue?.currentDialogueId ?? null);
+
+// ---- D7: First Resonance -> observer -> finale ----
+await boot();
+await p.evaluate(ENTER_ZONE, { zoneId: 'resonance_ancient_site', spawnId: 'start' });
+await p.waitForTimeout(200);
+await p.evaluate(() => { const s = window.__JRPG__.scenes.current; s._ch4Flags = Object.assign(Object.create(null), s._ch4Flags || {}, { ch4_completed: true }); s._ch5Flags = Object.assign(Object.create(null), s._ch5Flags || {}, { ch5_site_reached: true }); window.__chain = []; window.__JRPG__.events.on('dialogue.completed', (e) => window.__chain.push(e.id)); });
+await p.evaluate(() => { const s = window.__JRPG__.scenes.current; s.player.x = 160; s.player.y = 100; });
+await p.waitForTimeout(200);
+await tapE(); await p.waitForTimeout(200);
+const started = await st();
+const reached = await advance();
+await p.waitForTimeout(400);
+const after = await st();
+const d7 = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { chain: window.__chain, arc1: !!s._ch5Flags?.arc1_completed, unlock06: !!s._ch5Flags?.chapter_06_unlocked, ch5done: !!s._ch5Flags?.ch5_completed, firstDone: !!s._ch5Flags?.ch5_first_resonance_done, queued: s._queuedDialogue ?? null, toast: s._toast ?? null }; });
+console.log('D7 start', started.mode, 'end', after.mode, 'advanceClosed', reached, JSON.stringify(d7));
+await p.screenshot({ path: `${OUT}/d7_after_finale.png` });
+
+// ---- D6: party banter after ch2 forest entry ----
+await p.evaluate(ENTER_ZONE, { zoneId: 'forest', spawnId: 'from_village' });
+await p.waitForTimeout(200);
+await p.evaluate(() => { window.__chain = []; window.__JRPG__.events.on('dialogue.completed', (e) => window.__chain.push(e.id)); window.__JRPG__.scenes.current._startDialogue('ch2_forest_entry'); });
+await p.waitForTimeout(150);
+await advance();
+await p.waitForTimeout(500);
+const d6 = await p.evaluate(() => ({ chain: window.__chain, mode: window.__JRPG__.scenes.current.mode, banterDone: window.__JRPG__.scenes.current._partySeen?.ch2_party_forest_entry ?? false }));
+console.log('D6 after forest entry', JSON.stringify(d6));
+const d6b = await advance(); await p.waitForTimeout(200);
+console.log('D6 banter ran to close', d6b, JSON.stringify(await p.evaluate(() => window.__chain)));
+
+// ---- D2: save with F5, reload page, load with F9 ----
+await boot();
+await p.evaluate(ENTER_ZONE, { zoneId: 'forest', spawnId: 'from_village' });
+await p.waitForTimeout(200);
+await p.evaluate(() => { const s = window.__JRPG__.scenes.current; s._ch2Flags = Object.assign(Object.create(null), { ch2_first_echo_heard: true }); s.inventory.add('herb', 3); s.player.x = 100; s.player.y = 100; });
+await p.keyboard.down('F5'); await p.waitForTimeout(200); await p.keyboard.up('F5');
+await p.waitForTimeout(800);
+const savedToast = await p.evaluate(() => window.__JRPG__.scenes.current._toast);
+console.log('D2 save toast:', savedToast);
+await p.reload(); await p.waitForTimeout(1500);
+await boot();
+const before = await p.evaluate(() => ({ zone: window.__JRPG__.scenes.current.zones.activeZone?.id, flag: !!window.__JRPG__.scenes.current._ch2Flags?.ch2_first_echo_heard, herb: window.__JRPG__.scenes.current.inventory.count('herb') }));
+await p.keyboard.down('F9'); await p.waitForTimeout(200); await p.keyboard.up('F9');
+await p.waitForTimeout(800);
+const after9 = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { zone: s.zones.activeZone?.id, flag: !!s._ch2Flags?.ch2_first_echo_heard, herb: s.inventory.count('herb'), toast: s._toast }; });
+console.log('D2 after reload before F9', JSON.stringify(before));
+console.log('D2 after F9', JSON.stringify(after9));
+await p.screenshot({ path: `${OUT}/d2_after_load.png` });
+console.log('errors', errors);
+await b.close();

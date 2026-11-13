@@ -1,0 +1,88 @@
+import { chromium } from '/opt/npm-tools/node_modules/playwright/index.mjs';
+const OUT = 'docs/qa/evidence/batch-9-1-3';
+const ENTER_ZONE = ({ zoneId, spawnId }) => {
+  const s = window.__JRPG__.scenes.current; const pid = s.player.id;
+  s.zones.transitionTo(zoneId, spawnId);
+  const zone = s.zones.activeZone;
+  for (const e of [...s.entities.all()]) if (e.id !== pid) s.entities.remove(e.id);
+  s.player.zoneId = zone.id;
+  const sp = zone.spawnPoints.find((x) => x.id === spawnId);
+  s.player.x = sp.x; s.player.y = sp.y;
+  const mov = s.player.get('movement'); if (mov) mov.collision = s.zones.collision;
+  s._spawnZoneNpcs(zone); s._applyCamera(); s._rebuildLayers();
+  return zone.id;
+};
+const b = await chromium.launch({ args: ['--no-sandbox'] });
+const p = await (await b.newContext({ viewport: { width: 960, height: 540 } })).newPage();
+const errors = []; p.on('pageerror', (e) => errors.push('PAGEERROR ' + e.message));
+p.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+await p.goto('http://localhost:8137/index.html'); await p.waitForTimeout(1500);
+const st = () => p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { mode: s.mode, zone: s.zones?.activeZone?.id, x: Math.round(s.player.x), y: Math.round(s.player.y) }; });
+const toast = () => p.evaluate(() => window.__JRPG__.scenes.current._toastText ?? window.__JRPG__.scenes.current.toastText ?? null);
+for (let i = 0; i < 60; i++) { if ((await st()).mode !== 'dialogue') break; await p.keyboard.press('Enter'); await p.waitForTimeout(120); }
+async function tapE() { await p.keyboard.down('KeyE'); await p.waitForTimeout(150); await p.keyboard.up('KeyE'); }
+async function advance(max = 80) { for (let i = 0; i < max; i++) { if ((await st()).mode !== 'dialogue') return true; await p.keyboard.press('Enter'); await p.waitForTimeout(120); } return false; }
+
+// ---- A1: dialogue node without choices applies its effects once ----
+await p.evaluate(() => { window.__ev = []; window.__JRPG__.events.on('dialogue.node_effects', (e) => window.__ev.push(e)); });
+await p.evaluate(ENTER_ZONE, { zoneId: 'forest', spawnId: 'from_village' });
+await p.waitForTimeout(200);
+await p.evaluate(() => window.__JRPG__.scenes.current._startDialogue('ch2_first_echo'));
+await p.waitForTimeout(200);
+const a1Mode = await st();
+const emitted = await p.evaluate(() => window.__ev.length);
+const closed = await advance();
+const flagInfo = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { ev: window.__ev.map((e) => e.effects), ch2: Object.keys(s._ch2Flags || {}) }; });
+console.log('A1 start', a1Mode.mode, 'node_effects emitted', emitted, 'closed', closed, JSON.stringify(flagInfo));
+await p.screenshot({ path: `${OUT}/a1_choiceless_effects.png` });
+
+// ---- A5: chapter notification via chapterHook payload ----
+const a5 = await p.evaluate(() => {
+  const s = window.__JRPG__.scenes.current;
+  window.__JRPG__.events.emit('dialogue.node_effects', { dialogueId: 'x', nodeId: 'x', effects: { chapterHook: 'chapter_03' } });
+  return s._toast ?? null;
+});
+await p.waitForTimeout(150);
+await p.screenshot({ path: `${OUT}/a5_chapter_notice.png` });
+console.log('A5 toast after chapterHook:', a5);
+
+// ---- A4: flower with full inventory stays in world ----
+await p.evaluate(ENTER_ZONE, { zoneId: 'road_bellhaven', spawnId: 'start' });
+await p.waitForTimeout(200);
+const fill = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; while (s.inventory.slots.length < s.inventory.capacity) s.inventory.slots.push({ itemId: 'filler_' + s.inventory.slots.length, qty: 1 }); return { slots: s.inventory.slots.length, canAddFlower: s.inventory.add('road_flower', 1).ok }; });
+await p.evaluate(() => { const s = window.__JRPG__.scenes.current; const f = s.entities.all().find((e) => e.id === 'road_flower_0'); s.player.x = 80; s.player.y = 60; });
+await p.waitForTimeout(200);
+await tapE(); await p.waitForTimeout(250);
+const a4 = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { flowerStillThere: s.entities.all().some((e) => e.id === 'road_flower_0'), roadFlowerCount: s.inventory.count('road_flower'), mode: s.mode }; });
+console.log('A4 inventory filled:', JSON.stringify(fill), 'result', JSON.stringify(a4), 'toast', await p.evaluate(() => window.__JRPG__.scenes.current._toast));
+await p.screenshot({ path: `${OUT}/a4_full_inventory_flower.png` });
+
+// ---- Bunga jalan: pick up road_flower_0 with space available ----
+await p.evaluate(() => { const s = window.__JRPG__.scenes.current; s.inventory.slots = s.inventory.slots.filter((x) => !String(x.itemId).startsWith('filler_')); });
+await tapE(); await p.waitForTimeout(250);
+const pick = await p.evaluate(() => { const s = window.__JRPG__.scenes.current; return { flowerStillThere: s.entities.all().some((e) => e.id === 'road_flower_0'), roadFlowerCount: s.inventory.count('road_flower') }; });
+console.log('flower pick (space free):', JSON.stringify(pick));
+
+// ---- Keempat bunga jalan: ambil satu per satu dengan jalan ke posisinya ----
+const flowers = [[0, 80, 48], [1, 160, 140], [2, 320, 48], [3, 344, 130]];
+const flowerResults = [];
+for (const [i, fx, fy] of flowers) {
+  await p.evaluate(([fx, fy]) => { const s = window.__JRPG__.scenes.current; s.player.x = fx; s.player.y = fy + 12; }, [fx, fy]);
+  await p.waitForTimeout(150);
+  await tapE(); await p.waitForTimeout(250);
+  flowerResults.push({ i, gone: !(await p.evaluate((id) => window.__JRPG__.scenes.current.entities.all().some((e) => e.id === id), 'road_flower_' + i)) });
+}
+console.log('flowers picked (teleport beside each):', JSON.stringify(flowerResults));
+
+// ---- A8: dialog hutan Bab 2 tanpa error ----
+await p.evaluate(ENTER_ZONE, { zoneId: 'forest', spawnId: 'from_village' });
+await p.waitForTimeout(200);
+await p.evaluate(() => window.__JRPG__.scenes.current._startDialogue('ch2_forest_entry'));
+await p.waitForTimeout(200);
+const a8start = await st();
+await advance();
+console.log('A8 forest dialogue start', a8start.mode, 'end', (await st()).mode, 'errors so far', errors.length);
+await p.screenshot({ path: `${OUT}/a8_forest_dialogue.png` });
+
+console.log('errors', errors);
+await b.close();

@@ -1,0 +1,9 @@
+B1 bh_fountain object at (176,120) -> tile 11 7 walkable false
+  neighbor [ 12, 7 ] walkable false reachable from start false
+  neighbor [ 10, 7 ] walkable false reachable from start false
+  neighbor [ 11, 8 ] walkable false reachable from start false
+  neighbor [ 11, 6 ] walkable false reachable from start false
+  nearest walkable tile centre to object centre (px): 33.0 | interaction range 28 px
+B1 RESULT: UNREACHABLE (interaction impossible)
+B2 npc_timm at (160,164) -> tile 10 10 walkable true reachable true
+B2 RESULT: FIXED (static)
