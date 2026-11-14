@@ -41,6 +41,7 @@ import { BATTLE_LAYOUT, partySlot, enemySlot } from './battle/BattleLayout.js';
 import { BattlePresentation } from './battle/BattlePresentation.js';
 import { FieldEncounters } from '../engine/world/FieldEncounters.js';
 import { PixelArt } from '../engine/rendering/pixelart/PixelArt.js';
+import { preloadEnemyVisuals, drawExternalEnemy } from '../engine/assets/ExternalEnemySprites.js';
 import { InteractionComponent } from '../engine/entities/components/InteractionComponent.js';
 import { PlayerController } from '../engine/entities/controllers/PlayerController.js';
 import { InteractionSystem } from '../engine/entities/systems/InteractionSystem.js';
@@ -327,6 +328,7 @@ export class GameplayDemoScene {
   }
 
   init(data = {}) {
+    preloadEnemyVisuals().catch(() => {});
     this._input = data.input;
     this._events = data.events;
     this._audio = data.audio ?? null;
@@ -3469,7 +3471,7 @@ export class GameplayDemoScene {
       const opts = { flash: st.hit > 0 ? st.hit / 0.4 : 0, alpha: st.fade, dx: shake };
       if (st.fade > 0) {
         if (p.side === 'player') PixelArt.drawPartyMemberBattle(ctx, p.id, x, y, opts);
-        else PixelArt.drawEnemy(ctx, p, x, y, opts);
+        else if (!drawExternalEnemy(ctx, p.defId || p.id, x, y, opts)) PixelArt.drawEnemy(ctx, p, x, y, opts);
       }
       // active-turn marker
       if (b.state === 'active' && p.id === b.currentId && p.stats.isAlive) {

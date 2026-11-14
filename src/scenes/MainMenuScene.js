@@ -170,6 +170,11 @@ export class MainMenuScene {
     this._drawButton(ctx, OPTION_CONTINUE, 'Lanjutkan', this._continueAvailable());
     this._drawButton(ctx, OPTION_NEW, 'Permainan Baru', true);
 
+    ctx.font = '8px monospace';
+    ctx.fillStyle = '#8a7a6a';
+    ctx.textAlign = 'center';
+    ctx.fillText('Art Prototype: tambahkan ?artproto=1 di URL', W / 2, H - 12);
+
     if (this._message) {
       // Status message in its own panel under the buttons, so it never overlaps a button.
       drawPanel(ctx, 10, 202, W - 20, 26, { alpha: 0.92 });

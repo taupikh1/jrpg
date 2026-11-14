@@ -129,3 +129,6 @@ Dokumen tersebut harus dibaca bersama bukti dan batasan yang dicantumkan di dala
 - `docs/narrative/FINAL_CONTENT_ID_REGISTRY.md` — registry akhir.
 - `docs/narrative/CHAPTER_COMPLETENESS_MATRIX.md` — kelengkapan chapter.
 - `docs/narrative/CODING_AGENT_IMPLEMENTATION_HANDOVER.md` — handover coding.
+- `docs/art-overhaul/` — Milestone 0 art overhaul audit (no code changes).
+- `docs/art-overhaul/` — Milestone 0 + Milestone 1 art prototype.
+- `docs/art-overhaul/` — Art overhaul Milestones 0–6 (pipeline + catalogs + prototype).

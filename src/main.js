@@ -21,6 +21,7 @@ import { SceneManager } from './core/SceneManager.js';
 import { EventBus } from './core/EventBus.js';
 import { TextureCache } from './engine/rendering/TextureCache.js';
 import { GameplayDemoScene } from './scenes/GameplayDemoScene.js';
+import { ArtPrototypeScene } from './scenes/ArtPrototypeScene.js';
 import { MainMenuScene } from './scenes/MainMenuScene.js';
 import { Config } from './core/Config.js';
 import { log } from './core/Logger.js';
@@ -183,8 +184,14 @@ async function bootstrap() {
       events,
     });
 
-    // Production entry point: the player starts at the main menu, not in gameplay.
-    await scenes.switchTo(MENU_KEY, sessionBase);
+    // Art overhaul prototype (Milestone 1) — opt-in via ?artproto=1
+    const artProto = new URLSearchParams(window.location.search).has('artproto');
+    if (artProto) {
+      scenes.register('art-prototype', new ArtPrototypeScene());
+      await scenes.switchTo('art-prototype', sessionBase);
+    } else {
+      await scenes.switchTo(MENU_KEY, sessionBase);
+    }
     game.start();
     syncMobileLayout();
 
